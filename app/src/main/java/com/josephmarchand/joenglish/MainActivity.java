@@ -1,61 +1,75 @@
 package com.josephmarchand.joenglish;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
-import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
-    LinearLayout root, content; SharedPreferences p; TextToSpeech tts;
-    int xp, streak, lesson=0, q=0, lessonXp=0;
-    String source="Français", target="English", level="Débutant total", reason="Voyage";
-    final String[] titles={"Salutations","Se présenter","Le verbe BE","La famille","Les nombres","Les objets","Les couleurs","Actions","Routine","Questions simples","Politesse","Mini conversation"};
-    final String[][] data={
-      {"Comment dit-on « Bonjour » ?","Hello","Goodbye","Thanks","Hello signifie bonjour."},
-      {"Complète : My name ___ Joseph.","is","are","am","Avec My name, on utilise is."},
-      {"Complète : I ___ a student.","am","is","are","Avec I, on utilise am."},
-      {"Comment dit-on « mère » ?","mother","father","brother","Mother signifie mère."},
-      {"Quel nombre signifie « five » ?","5","3","10","Five signifie cinq."},
-      {"Quel mot signifie « livre » ?","book","house","chair","Book signifie livre."},
-      {"Quelle couleur signifie « rouge » ?","red","blue","green","Red signifie rouge."},
-      {"Que signifie « eat » ?","manger","dormir","courir","Eat signifie manger."},
-      {"« I wake up » signifie :","Je me réveille","Je mange","Je travaille","Wake up signifie se réveiller."},
-      {"Comment dit-on « Où habites-tu ? » ?","Where do you live?","What are you?","How old is?","Cette phrase demande où une personne habite."},
-      {"« Thank you » signifie :","Merci","Bonjour","Pardon","Thank you signifie merci."},
-      {"A: How are you? B: ___","I'm fine.","Good night.","My name Joseph.","I'm fine signifie je vais bien."}
-    };
-    @Override public void onCreate(Bundle b){super.onCreate(b); p=getSharedPreferences("joenglish",0); load(); tts=new TextToSpeech(this,s->{if(s==0)tts.setLanguage(Locale.US);}); if(p.getBoolean("onboarding",false)) home(); else welcome();}
-    void load(){xp=p.getInt("xp",0);streak=p.getInt("streak",0);lesson=p.getInt("lesson",0);source=p.getString("source","Français");target=p.getString("target","English");level=p.getString("level","Débutant total");reason=p.getString("reason","Voyage");}
-    void save(){p.edit().putInt("xp",xp).putInt("streak",streak).putInt("lesson",lesson).putString("source",source).putString("target",target).putString("level",level).putString("reason",reason).apply();}
-    void page(String title,String sub){root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(22,28,22,18);root.setBackgroundColor(Color.rgb(248,249,252)); root.addView(txt(title,28,true));if(sub!=null)root.addView(txt(sub,15,false));ScrollView s=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);s.addView(content);root.addView(s,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);}
-    TextView txt(String s,float z,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(Color.rgb(30,30,40));t.setTypeface(null,bold?1:0);t.setPadding(0,9,0,9);return t;}
-    Button btn(String s,View.OnClickListener l){Button b=new Button(this);b.setText(s);b.setTextSize(15);b.setAllCaps(false);b.setOnClickListener(l);content.addView(b);return b;}
-    void welcome(){page("🇬🇧 JoEnglish","Un parcours personnalisé pour apprendre chaque jour.");content.addView(txt("Bienvenue 👋",24,true));content.addView(txt("Configure ton parcours avant de commencer les leçons.",17,false));btn("Commencer",v->chooseSource());}
-    void chooseSource(){page("Ta langue","Quelle langue connais-tu déjà ?");for(String x:new String[]{"Français","English","Español","Português"})btn(x,v->{source=((Button)v).getText().toString();chooseTarget();});}
-    void chooseTarget(){page("Langue à apprendre","Choisis ta langue cible.");for(String x:new String[]{"English","Français","Español","Deutsch"})if(!x.equals(source))btn(x,v->{target=((Button)v).getText().toString();chooseLevel();});}
-    void chooseLevel(){page("Ton niveau","Choisis ton niveau actuel.");for(String x:new String[]{"Débutant total","Je connais quelques mots","Intermédiaire"})btn(x,v->{level=((Button)v).getText().toString();chooseReason();});}
-    void chooseReason(){page("Pourquoi apprends-tu ?","Cela personnalise ton parcours.");for(String x:new String[]{"Voyage","Travail","Études","Conversation","Culture"})btn(x,v->{reason=((Button)v).getText().toString();testIntro();});}
-    void testIntro(){page("Test de niveau","5 questions rapides.");content.addView(txt("Pas de stress : ce test sert seulement à choisir le point de départ.",17,false));btn("Commencer",v->test(0));}
-    void test(int n){page("Test "+(n+1)+"/5","Choisis la réponse correcte.");String[][] a={{"Comment dit-on « bonjour » ?","Hello","Goodbye","Thanks"},{"I ___ Joseph.","am","is","are"},{"Thank you signifie :","Merci","Bonjour","Au revoir"},{"« maison » en anglais ?","house","book","school"},{"She ___ a student.","is","are","am"}};content.addView(txt(a[n][0],21,true));for(int i=1;i<4;i++){final int k=i;btn(a[n][i],v->{if(k==1)Toast.makeText(this,"✓ Bonne réponse",0).show();else Toast.makeText(this,"Correction : "+a[n][1],1).show();if(n<4)test(n+1);else{p.edit().putBoolean("onboarding",true).apply();save();home();}});}}
-    void home(){page("JoEnglish",""+source+" → "+target);content.addView(txt("⭐ XP : "+xp+"\n🔥 Série : "+streak+" jour(s)\n📈 Niveau : "+level,18,true));btn("📚 Continuer le cours",v->course());btn("🔁 Révision",v->revision());btn("💬 Expressions",v->expressions());btn("🏆 Défis",v->challenges());btn("👤 Profil",v->profile());btn("⚙️ Paramètres",v->settings());}
-    void course(){page("Parcours","A1 → A2 → B1 → B2 → C1 → C2 → Maîtrise → Expert");for(String x:new String[]{"A1","A2","B1","B2","C1","C2","Maîtrise","Expert"})btn(x+"  •  30 unités",v->lessons(x));}
-    void lessons(String l){page(l,"Leçons disponibles");for(int i=0;i<30;i++){final int n=i;btn((i+1)+". "+(i<titles.length?titles[i]:"Entraînement "+(i+1)),v->{if(n<titles.length)start(n);else Toast.makeText(this,"Nouveau contenu à venir.",1).show();});}}
-    void start(int n){lesson=n;q=0;lessonXp=0;lessonIntro();}
-    void lessonIntro(){page(titles[lesson],"Leçon "+(lesson+1));content.addView(txt("Apprends cette notion puis réponds aux questions.\n\nObjectif : comprendre et utiliser la langue dans une situation réelle.",17,false));btn("🔊 Écouter",v->speak(data[lesson][0]));btn("Commencer",v->question());}
-    void question(){page("Question "+(q+1)+"/3",titles[lesson]);String[] d=data[lesson];String correct=d[1];String a=q==0?correct:(q==1?d[2]:d[3]);String b=q==0?d[2]:(q==1?d[3]:correct);String c=q==0?d[3]:(q==1?correct:d[2]);content.addView(txt(d[0],21,true));btn("🔊 Écouter",v->speak(d[0]));for(String x:new String[]{a,b,c})btn(x,v->answer(x,correct,d[4]));}
-    void answer(String x,String correct,String exp){if(x.equalsIgnoreCase(correct)){lessonXp+=10;Toast.makeText(this,"✓ Correct ! +10 XP",0).show();}else Toast.makeText(this,"✗ "+exp,1).show();q++;if(q<3)question();else finishLesson();}
-    void finishLesson(){xp+=lessonXp;streak=Math.max(1,streak);if(lesson<29)lesson++;save();page("🎉 Leçon terminée !","Bravo !");content.addView(txt("+"+lessonXp+" XP",30,true));content.addView(txt("La correction t'aide à mémoriser. Reviens chaque jour pour renforcer tes acquis.",17,false));btn("Leçon suivante",v->lessons("A1"));btn("Accueil",v->home());}
-    void revision(){page("🔁 Révision","Révise les leçons déjà vues.");for(int i=0;i<Math.min(lesson+1,titles.length);i++){final int n=i;btn("Réviser : "+titles[i],v->start(n));}btn("Accueil",v->home());}
-    void expressions(){page("💬 Expressions utiles","À réutiliser dans la vraie vie.");String[][] e={{"How are you?","Comment vas-tu ?"},{"Nice to meet you.","Ravi de te rencontrer."},{"I don't understand.","Je ne comprends pas."},{"Could you help me?","Pourrais-tu m'aider ?"},{"How much is it?","Combien ça coûte ?"},{"See you later.","À plus tard."},{"Have a nice day!","Bonne journée !"}};for(String[] x:e){content.addView(txt(x[0]+"\n"+x[1],17,true));btn("🔊 Écouter",v->speak(x[0]));}}
-    void challenges(){page("🏆 Défis","Objectifs supplémentaires.");content.addView(txt("Défi du jour\nGagne 50 XP aujourd'hui.\n\nDéfi de la semaine\nTermine 5 leçons.\n\nDéfi vocabulaire\nRévise 20 expressions.",18,false));btn("Accueil",v->home());}
-    void profile(){page("👤 Profil","Ta progression.");content.addView(txt("⭐ XP total : "+xp+"\n🔥 Série : "+streak+" jour(s)\n🌍 "+source+" → "+target+"\n🎯 Motivation : "+reason,18,false));btn("Accueil",v->home());}
-    void settings(){page("⚙️ Paramètres","Réglages de JoEnglish.");content.addView(txt("Créé par Joseph Marchand\nLangue : "+source+" → "+target,17,false));btn("🔊 Tester le son",v->speak("Hello, welcome to JoEnglish!"));btn("♻️ Réinitialiser la progression",v->{xp=0;streak=0;lesson=0;save();Toast.makeText(this,"Progression réinitialisée.",0).show();home();});btn("Accueil",v->home());}
-    void speak(String s){if(tts!=null)tts.speak(s,TextToSpeech.QUEUE_FLUSH,null,"jo");}
+    private LinearLayout root, content;
+    private SharedPreferences prefs;
+    private TextToSpeech tts;
+    private String source="Français", target="English", level="Débutant total", reason="Voyage";
+    private int dailyGoal=15, xp=0, streak=0, lessonIndex=0, questionIndex=0, lessonXp=0;
+    private final List<Lesson> lessons=new ArrayList<>();
+    private final int BLUE=Color.rgb(79,70,229), DARK=Color.rgb(28,31,43), MUTED=Color.rgb(95,99,115), BG=Color.rgb(246,247,251), GREEN=Color.rgb(22,163,74);
+
+    @Override protected void onCreate(Bundle b){super.onCreate(b); prefs=getSharedPreferences("joenglish",MODE_PRIVATE); load();
+        tts=new TextToSpeech(this,s->{if(s==TextToSpeech.SUCCESS)tts.setLanguage(Locale.US);}); buildLessons();
+        if(prefs.getBoolean("onboarding_done",false)) showHome(); else welcome();}
+    private void load(){source=prefs.getString("source","Français");target=prefs.getString("target","English");level=prefs.getString("level","Débutant total");reason=prefs.getString("reason","Voyage");dailyGoal=prefs.getInt("goal",15);xp=prefs.getInt("xp",0);streak=prefs.getInt("streak",0);lessonIndex=prefs.getInt("lesson",0);}
+    private void save(){prefs.edit().putString("source",source).putString("target",target).putString("level",level).putString("reason",reason).putInt("goal",dailyGoal).putInt("xp",xp).putInt("streak",streak).putInt("lesson",lessonIndex).apply();}
+    private TextView tv(String s,float z,int c,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(c);t.setTypeface(Typeface.DEFAULT,bold?Typeface.BOLD:Typeface.NORMAL);t.setPadding(0,7,0,7);return t;}
+    private Button btn(String s,View.OnClickListener l){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextSize(15);b.setOnClickListener(l);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,56);p.setMargins(0,5,0,5);b.setLayoutParams(p);return b;}
+    private void page(String title,String sub){root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(20,24,20,16);root.setBackgroundColor(BG);root.addView(tv(title,27,DARK,true));if(sub!=null)root.addView(tv(sub,15,MUTED,false));ScrollView sc=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);sc.addView(content);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);}
+    private TextView card(String icon,String title,String value){TextView t=tv(icon+"  "+title+"\n"+value,16,DARK,true);t.setGravity(Gravity.CENTER_VERTICAL);t.setPadding(15,10,10,10);t.setBackgroundColor(Color.WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,88,1);p.setMargins(4,4,4,4);t.setLayoutParams(p);return t;}
+
+    private void welcome(){page("🇬🇧 JoEnglish","Apprends aujourd'hui, un meilleur demain !");TextView a=tv("Bienvenue 👋",26,BLUE,true);a.setGravity(Gravity.CENTER);content.addView(a);TextView d=tv("Un parcours personnalisé avec des leçons, des révisions, des expressions et des défis.",17,MUTED,false);d.setGravity(Gravity.CENTER);content.addView(d);content.addView(btn("Commencer",v->language()));}
+    private void language(){page("Ta langue","Quelle langue connais-tu déjà ?");for(String x:new String[]{"Français","English","Español","Português"})content.addView(btn(x,v->{source=((Button)v).getText().toString();targetLanguage();}));}
+    private void targetLanguage(){page("Langue à apprendre","Choisis ta langue cible.");for(String x:new String[]{"English","Français","Español","Deutsch"})if(!x.equals(source))content.addView(btn(x,v->{target=((Button)v).getText().toString();chooseLevel();}));}
+    private void chooseLevel(){page("Ton niveau","Choisis ton niveau actuel.");for(String x:new String[]{"Débutant total","Je connais quelques mots","Intermédiaire"})content.addView(btn(x,v->{level=((Button)v).getText().toString();chooseReason();}));}
+    private void chooseReason(){page("Pourquoi apprends-tu ?","Cela personnalise ton parcours.");for(String x:new String[]{"Voyage","Travail","Études","Conversation","Culture"})content.addView(btn(x,v->{reason=((Button)v).getText().toString();goal();}));}
+    private void goal(){page("Objectif quotidien","Choisis ton temps d'étude.");for(int n:new int[]{5,10,15,20,30})content.addView(btn(n+" minutes",v->{dailyGoal=Integer.parseInt(((Button)v).getText().toString().split(" ")[0]);test(0);}));}
+    private void test(int n){String[][] q={{"Comment dit-on « bonjour » ?","Hello","Goodbye","Thanks"},{"Complète : I ___ Joseph.","am","is","are"},{"Thank you signifie :","Merci","Bonjour","Pardon"},{"Quel mot signifie maison ?","house","book","school"},{"Complète : She ___ a student.","is","am","are"}};page("Test de niveau "+(n+1)+"/5","Choisis la bonne réponse.");content.addView(tv(q[n][0],21,DARK,true));for(int i=1;i<4;i++){final int k=i;content.addView(btn(q[n][k],v->{if(k==1)Toast.makeText(this,"✓ Bonne réponse",Toast.LENGTH_SHORT).show();else Toast.makeText(this,"Correction : "+q[n][1],Toast.LENGTH_SHORT).show();if(n<4)test(n+1);else{prefs.edit().putBoolean("onboarding_done",true).apply();save();showHome();}}));}}
+
+    private void showHome(){page("JoEnglish","Bonjour 👋  •  "+source+" → "+target);content.addView(tv("Prêt pour ta prochaine session ?",20,DARK,true));LinearLayout r1=new LinearLayout(this);r1.setOrientation(LinearLayout.HORIZONTAL);r1.addView(card("⭐","XP",String.valueOf(xp)));r1.addView(card("🔥","Série",streak+" jour(s)"));content.addView(r1);LinearLayout r2=new LinearLayout(this);r2.setOrientation(LinearLayout.HORIZONTAL);r2.addView(card("📊","Niveau",level));r2.addView(card("🎯","Objectif",dailyGoal+" min"));content.addView(r2);
+        int goal=Math.max(50,dailyGoal*5), pct=Math.min(100,(xp%goal)*100/goal);content.addView(tv("Progression du jour",18,DARK,true));content.addView(tv(pct+"%  •  "+Math.min(xp,goal)+" / "+goal+" XP",15,MUTED,false));content.addView(tv(pct>=100?"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━":"━━━━━━━━━━━━━━━━░░░░░░░░░░░░░░",15,pct>=100?GREEN:BLUE,true));
+        String next=lessonIndex<lessons.size()?lessons.get(lessonIndex).title:"Entraînement "+(lessonIndex+1);TextView n=tv("📚  Prochaine leçon\n"+next,18,DARK,true);n.setPadding(16,15,16,15);n.setBackgroundColor(Color.WHITE);content.addView(n);
+        content.addView(btn("▶  Continuer le cours",v->course()));content.addView(btn("🔁  Révision intelligente",v->revision()));content.addView(btn("💬  Expressions utiles",v->expressions()));content.addView(btn("🏆  Défis",v->challenges()));content.addView(btn("📅  Ma routine",v->routine()));content.addView(btn("👤  Profil",v->profile()));content.addView(btn("⚙️  Paramètres",v->settings()));TextView f=tv("JoEnglish • Créé par Joseph Marchand",13,MUTED,false);f.setGravity(Gravity.CENTER);content.addView(f);}
+
+    private void course(){page("📚 Parcours","A1 → A2 → B1 → B2 → C1 → C2 → Maîtrise → Expert");for(String x:new String[]{"A1","A2","B1","B2","C1","C2","Maîtrise","Expert"})content.addView(btn(x+"   •   30 unités",v->lessons(x)));content.addView(btn("← Accueil",v->showHome()));}
+    private void lessons(String lv){page(lv,"Choisis une leçon.");for(int i=0;i<30;i++){final int k=i;String icon=i<lessonIndex?"✓":i==lessonIndex?"▶":"○";content.addView(btn(icon+"  "+(i+1)+". "+title(i),v->start(k)));}content.addView(btn("← Retour",v->course()));}
+    private String title(int i){return i<lessons.size()?lessons.get(i).title:"Entraînement "+(i+1);}
+    private void start(int i){lessonIndex=i;questionIndex=0;lessonXp=0;if(i>=lessons.size()){Toast.makeText(this,"Nouveau contenu bientôt disponible.",Toast.LENGTH_LONG).show();return;}intro(lessons.get(i));}
+    private void intro(Lesson l){page(l.title,"Leçon "+(lessonIndex+1));content.addView(tv(l.explanation,17,MUTED,false));content.addView(btn("🔊 Écouter",v->speak(l.questions.get(0).q)));content.addView(btn("Commencer",v->question(l)));}
+    private void question(Lesson l){Q q=l.questions.get(questionIndex);page("Question "+(questionIndex+1)+"/"+l.questions.size(),l.title);content.addView(tv(q.q,22,DARK,true));content.addView(btn("🔊 Écouter",v->speak(q.q)));for(String a:q.answers)content.addView(btn(a,v->answer(l,q,a)));}
+    private void answer(Lesson l,Q q,String a){if(a.equalsIgnoreCase(q.correct)){lessonXp+=10;Toast.makeText(this,"✓ Correct ! +10 XP",Toast.LENGTH_SHORT).show();}else Toast.makeText(this,"✗ "+q.correct+" — "+q.exp,Toast.LENGTH_LONG).show();questionIndex++;if(questionIndex<l.questions.size())question(l);else finishLesson(l);}
+    private void finishLesson(Lesson l){xp+=lessonXp;streak=Math.max(1,streak);lessonIndex=Math.min(lessonIndex+1,29);save();page("🎉 Leçon terminée !",l.title);TextView s=tv("+"+lessonXp+" XP",31,BLUE,true);s.setGravity(Gravity.CENTER);content.addView(s);content.addView(tv("Bravo ! Ta progression est enregistrée.",17,MUTED,false));content.addView(btn("Leçon suivante",v->lessons("A1")));content.addView(btn("Accueil",v->showHome()));}
+    private void revision(){page("🔁 Révision","Renforce ce que tu as appris.");for(Lesson l:lessons)content.addView(btn("Réviser : "+l.title,v->start(lessons.indexOf(l))));content.addView(btn("← Accueil",v->showHome()));}
+    private void expressions(){page("💬 Expressions utiles","Expressions de la vie quotidienne.");String[][] e={{"How are you?","Comment vas-tu ?"},{"Nice to meet you.","Ravi de te rencontrer."},{"See you later.","À plus tard."},{"Could you help me?","Pourrais-tu m'aider ?"},{"I don't understand.","Je ne comprends pas."},{"How much is it?","Combien ça coûte ?"},{"Where is the bathroom?","Où sont les toilettes ?"},{"I need help.","J'ai besoin d'aide."}};for(String[] x:e){content.addView(tv(x[0]+"\n"+x[1],17,DARK,true));content.addView(btn("🔊 Écouter",v->speak(x[0])));}content.addView(btn("← Accueil",v->showHome()));}
+    private void challenges(){page("🏆 Défis","Des objectifs pour rester actif.");content.addView(tv("🔥 Défi du jour",20,DARK,true));content.addView(tv("Gagne 50 XP aujourd'hui.",16,MUTED,false));content.addView(tv("📅 Défi de la semaine",20,DARK,true));content.addView(tv("Termine 5 leçons.",16,MUTED,false));content.addView(tv("📚 Défi vocabulaire",20,DARK,true));content.addView(tv("Révise 20 mots ou expressions.",16,MUTED,false));content.addView(btn("← Accueil",v->showHome()));}
+    private void routine(){page("📅 Ma routine","Ton plan d'apprentissage.");content.addView(tv("Langue : "+target+"\nNiveau : "+level+"\nMotivation : "+reason+"\nObjectif : "+dailyGoal+" minutes",18,DARK,false));content.addView(btn("📚 Faire une leçon",v->course()));content.addView(btn("🔁 Révision",v->revision()));content.addView(btn("← Accueil",v->showHome()));}
+    private void profile(){page("👤 Profil","Ta progression personnelle.");content.addView(tv("⭐ XP total : "+xp+"\n🔥 Série : "+streak+" jour(s)\n📚 "+source+" → "+target+"\n🎯 "+dailyGoal+" min/jour",19,DARK,false));content.addView(btn("← Accueil",v->showHome()));}
+    private void settings(){page("⚙️ Paramètres","Réglages de JoEnglish.");content.addView(tv("Langue : "+source+" → "+target,17,DARK,false));content.addView(btn("🔊 Son / voix",v->sound()));content.addView(btn("♻️ Réinitialiser la progression",v->{xp=0;streak=0;lessonIndex=0;save();Toast.makeText(this,"Progression réinitialisée.",Toast.LENGTH_SHORT).show();showHome();}));content.addView(tv("Créé par Joseph Marchand",15,MUTED,false));content.addView(btn("← Accueil",v->showHome()));}
+    private void sound(){page("🔊 Son","Teste la prononciation.");content.addView(btn("Écouter Hello",v->speak("Hello")));content.addView(btn("Écouter How are you?",v->speak("How are you?")));content.addView(btn("← Paramètres",v->settings()));}
+    private void speak(String s){if(tts!=null)tts.speak(s,TextToSpeech.QUEUE_FLUSH,null,"joenglish");}
+
+    private void buildLessons(){lessons.clear();lessons.add(new Lesson("Salutations","Apprends à saluer.",new Q("Comment dit-on « Bonjour » ?","Hello","Hello","Goodbye","Thanks","Hello signifie bonjour.")));lessons.add(new Lesson("Se présenter","Présente-toi simplement.",new Q("My name ___ Joseph.","is","is","are","am","Avec My name, on utilise is.")));lessons.add(new Lesson("Le verbe BE","Am, is et are.",new Q("I ___ a student.","am","am","is","are","Avec I, on utilise am.")));lessons.add(new Lesson("La famille","Vocabulaire de la famille.",new Q("Comment dit-on « mère » ?","mother","mother","father","brother","Mother signifie mère.")));lessons.add(new Lesson("Les nombres","Les nombres essentiels.",new Q("Quel nombre signifie five ?","5","5","3","10","Five signifie cinq.")));lessons.add(new Lesson("Les objets","Objets courants.",new Q("Quel mot signifie livre ?","book","book","house","chair","Book signifie livre.")));lessons.add(new Lesson("Les couleurs","Couleurs de base.",new Q("Quelle couleur signifie rouge ?","red","red","blue","green","Red signifie rouge.")));lessons.add(new Lesson("Actions","Verbes fréquents.",new Q("Que signifie eat ?","manger","manger","dormir","courir","Eat signifie manger.")));lessons.add(new Lesson("Routine","Parle de ta journée.",new Q("I wake up signifie :","Je me réveille","Je me réveille","Je mange","Je travaille","Wake up signifie se réveiller.")));lessons.add(new Lesson("Questions simples","Questions courantes.",new Q("Où habites-tu ?","Where do you live?","Where do you live?","What are you?","How old is?","Where do you live? demande où tu habites.")));lessons.add(new Lesson("Politesse","Expressions de politesse.",new Q("Thank you signifie :","Merci","Merci","Bonjour","Pardon","Thank you signifie merci.")));lessons.add(new Lesson("Mini conversation","Mets plusieurs notions ensemble.",new Q("A: How are you? B: ___","I'm fine.","I'm fine.","My name Joseph.","Good night.","I'm fine signifie je vais bien.")));}
+    private static class Lesson{String title,explanation;List<Q> questions=new ArrayList<>();Lesson(String t,String e,Q...q){title=t;explanation=e;questions.addAll(Arrays.asList(q));}}
+    private static class Q{String q,correct,exp;String[] answers;Q(String q,String c,String a,String b,String d,String e){this.q=q;correct=c;answers=new String[]{a,b,d};exp=e;}}
     @Override protected void onDestroy(){if(tts!=null){tts.stop();tts.shutdown();}super.onDestroy();}
-        }
-                                                                                           
+                                                                                    }
+                                                                                                                                                                                                          
